@@ -22,22 +22,26 @@
 
 import UIKit
 
-@objcMembers
-@objc(__yx_marquee__)
+@objcMembers @objc(__private_yx_marquee_view__)
 public class Marquee: UIView {
-    @objc(YXMarqueeDirection)
-    public enum Direction: Int {
-        case left; case right
-    }
-
     public enum Mode {
         case cycle(force: Bool)
         case single(isReverse: Bool, isRepeat: Bool)
     }
 
+    @objc(YXMarqueeDirection)
+    public enum Direction: Int {
+        case left
+        case right
+    }
+
     @objc(YXMarqueeContentAlignment)
     public enum Alignment: Int {
-        case center; case top; case bottom; case left; case right
+        case center
+        case top
+        case bottom
+        case left
+        case right
     }
 
     public var content: UIView? {
@@ -49,20 +53,7 @@ public class Marquee: UIView {
     }
 
     public var pause = false {
-        didSet {
-            if pause {
-                let pausedTime = layer.convertTime(CACurrentMediaTime(), from: nil)
-                layer.speed = 0
-                layer.timeOffset = pausedTime
-            } else {
-                let pausedTime = layer.timeOffset
-                layer.speed = 1.0
-                layer.timeOffset = 0.0
-                layer.beginTime = 0.0
-                let timeSincePause = layer.convertTime(CACurrentMediaTime(), from: nil) - pausedTime
-                layer.beginTime = timeSincePause
-            }
-        }
+        didSet { setPause(pause: pause) }
     }
 
     public var speed = 60.0 {
@@ -89,8 +80,6 @@ public class Marquee: UIView {
         didSet { setNeedsLayout() }
     }
 
-    private var contentViews: [UIView] = []
-
     override public init(frame: CGRect) {
         super.init(frame: frame)
         clipsToBounds = true
@@ -109,20 +98,19 @@ public class Marquee: UIView {
         super.layoutSubviews()
         clear()
 
-        if autoSizeContent {
-            content?.sizeToFit()
-        }
+        if autoSizeContent { content?.sizeToFit() }
 
         switch mode {
         case .single(let isReverse, let isRepeat):
-            single(isReverse: isReverse, isRepeat: isRepeat)
+            singleMode(isReverse: isReverse, isRepeat: isRepeat)
         case .cycle(let force):
-            cycle(force: force)
+            cycleMode(force: force)
         }
     }
 
     // MARK: -
 
+    private var contentViews: [UIView] = []
     private func clear() {
         for (index, view) in contentViews.enumerated().reversed() {
             view.removeFromSuperview()
@@ -131,7 +119,55 @@ public class Marquee: UIView {
         }
     }
 
-    private func single(isReverse: Bool, isRepeat: Bool) {
+    private func getContentX() -> CGFloat {
+        guard let content = content else { return 0 }
+        switch contentAlignment {
+        case .center, .top, .bottom:
+            return (frame.width - content.frame.width) * 0.5
+        case .left:
+            return 0.0
+        case .right:
+            return frame.width - content.frame.width
+        }
+    }
+
+    private func getContentY() -> CGFloat {
+        guard let content = content else { return 0 }
+        switch contentVerticalAlignment {
+        case .center, .left, .right:
+            return (frame.height - content.frame.height) * 0.5
+        case .top:
+            return 0
+        case .bottom:
+            return frame.height - content.frame.height
+        }
+    }
+
+    private func cloneContent(content: UIView) -> UIView {
+        let data = NSKeyedArchiver.archivedData(withRootObject: content)
+        return NSKeyedUnarchiver.unarchiveObject(with: data) as! UIView
+    }
+}
+
+private extension Marquee {
+    func setPause(pause: Bool) {
+        if pause {
+            let pausedTime = layer.convertTime(CACurrentMediaTime(), from: nil)
+            layer.speed = 0
+            layer.timeOffset = pausedTime
+        } else {
+            let pausedTime = layer.timeOffset
+            layer.speed = 1.0
+            layer.timeOffset = 0.0
+            layer.beginTime = 0.0
+            let timeSincePause = layer.convertTime(CACurrentMediaTime(), from: nil) - pausedTime
+            layer.beginTime = timeSincePause
+        }
+    }
+}
+
+private extension Marquee {
+    func singleMode(isReverse: Bool, isRepeat: Bool) {
         guard let content = content else { return }
 
         let view = cloneContent(content: content)
@@ -172,11 +208,13 @@ public class Marquee: UIView {
         }
         view.layer.add(anim, forKey: nil)
     }
+}
 
-    private func cycle(force: Bool) {
+private extension Marquee {
+    func cycleMode(force: Bool) {
         guard let content = content else { return }
 
-        if force == false && content.frame.width <= frame.width {
+        if force == false, content.frame.width <= frame.width {
             addSubview(content)
             contentViews.append(content)
             var frame = content.frame
@@ -212,38 +250,5 @@ public class Marquee: UIView {
             anim.repeatCount = .infinity
             view.layer.add(anim, forKey: nil)
         }
-    }
-
-    // MARK: -
-
-    private func getContentX() -> CGFloat {
-        guard let content = content else { return 0 }
-        switch contentAlignment {
-        case .center, .top, .bottom:
-            return (frame.width - content.frame.width) * 0.5
-        case .left:
-            return 0.0
-        case .right:
-            return frame.width - content.frame.width
-        }
-    }
-
-    private func getContentY() -> CGFloat {
-        guard let content = content else { return 0 }
-        switch contentVerticalAlignment {
-        case .center, .left, .right:
-            return (frame.height - content.frame.height) * 0.5
-        case .top:
-            return 0
-        case .bottom:
-            return frame.height - content.frame.height
-        }
-    }
-
-    // MARK: -
-
-    private func cloneContent(content: UIView) -> UIView {
-        let data = NSKeyedArchiver.archivedData(withRootObject: content)
-        return NSKeyedUnarchiver.unarchiveObject(with: data) as! UIView
     }
 }

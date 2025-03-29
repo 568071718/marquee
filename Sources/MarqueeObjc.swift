@@ -22,10 +22,9 @@
 
 import UIKit
 
-@objcMembers
 @objc(YXMarqueeView)
-public class __yx_marquee_objc__: Marquee {
-    @objc(YXMarqueeViewMode)
+public class __private_yx_marquee_view_objc__: Marquee {
+    @objc(YXMarqueeMode)
     public enum Mode: Int {
         case single
         case singleReverse
@@ -33,12 +32,13 @@ public class __yx_marquee_objc__: Marquee {
         case singleRepeatAndReverse
 
         case cycle
-        case cycleForceTile
+        case cycleForce
     }
 
-    public var marqueeMode = Mode.cycle {
+    @objc(mode)
+    public var _mode = Mode.cycle {
         didSet {
-            switch marqueeMode {
+            switch _mode {
             case .single:
                 mode = .single(isReverse: false, isRepeat: false)
             case .singleReverse:
@@ -49,7 +49,7 @@ public class __yx_marquee_objc__: Marquee {
                 mode = .single(isReverse: true, isRepeat: true)
             case .cycle:
                 mode = .cycle(force: false)
-            case .cycleForceTile:
+            case .cycleForce:
                 mode = .cycle(force: true)
             }
         }
